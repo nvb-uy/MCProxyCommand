@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import de.michiruf.proxycommand.common.ProxyCommandConstants;
+import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -33,7 +34,6 @@ public class ProxyCommandMod implements ModInitializer {
     private static void registerCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
         LiteralCommandNode<ServerCommandSource> proxyCommand = CommandManager
                 .literal("proxycommand")
-                .requires(cmd -> cmd.hasPermissionLevel(2))
                 .then(CommandManager.argument("command", StringArgumentType.string())
                         .executes(ProxyCommandMod::sendMessage)
                         .build())
@@ -50,6 +50,14 @@ public class ProxyCommandMod implements ModInitializer {
             context.getSource().sendMessage(Text.literal("Command source must be a player"));
             return -1;
         }
+
+        String commandPermission = command.replaceAll(" ", "_");
+
+        if (!Permissions.check(player, "proxycommand." + commandPermission)) {
+            context.getSource().sendFeedback(() -> Text.literal("You do not have permission to do this!"), false);
+            return 0;
+        }
+
 
         // To communicate with the proxy, a S2C packet sent via the players connection is needed (which
         // is the connection to the proxy indeed)
